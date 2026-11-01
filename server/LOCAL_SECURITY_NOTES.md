@@ -30,3 +30,10 @@ The upstream quality gate (format, lint, TypeScript, build, and 64 tests) passes
 
 - Live edit test found a provider limitation: Yahoo rewrites IMAP-imported reply drafts without In-Reply-To or parent References. Initial MIME correctness does not imply the reviewed draft remains threaded. Tool description/results now disclose this.
 - A native Yahoo Reply draft retained both parent headers after adding the 107-byte test attachment, editing, and saving. The Cowork reply-draft skill therefore uses native Yahoo Reply with browser control and read-only header verification, and stops with manual steps if browser control is unavailable. No reply was sent.
+
+## Managed development and releases — 2026-11-01
+
+- Canonical development is isolated from the installed runtime. Development scripts reject an installed-runtime marker before deleting or rebuilding output.
+- MAIL_OPERATION_MODE supports read-only, draft-only, and full. Restricted modes hide blocked tools and enforce the policy at dispatch, including rejecting markSeen=true. Connection checks skip SMTP in restricted modes. The default full mode preserves production behavior.
+- Offline compiled-server integration uses generated certificates and loopback TLS IMAP/SMTP fixtures. It checks attachment bytes, reply headers, Bcc envelope behavior, and zero SMTP connections for restricted modes. Real credentials and mailbox data are not needed.
+- Runtime releases include locked production dependencies, a complete checksum inventory, source commit, and Node/local version metadata. Candidate preparation is separate from atomic activation; startup/verification failures leave the active release selected.

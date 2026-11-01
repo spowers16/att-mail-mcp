@@ -1,3 +1,4 @@
+import './development-guard';
 import { chmod, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

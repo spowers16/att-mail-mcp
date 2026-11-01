@@ -43,6 +43,8 @@ import {
 } from './mail-utils';
 import { MailSearchService } from './search-service';
 import { MailConnectionManager } from './mail-connection-manager';
+import { assertOperationAllowed, isToolAllowed } from './operation-policy';
+import { SERVER_VERSION } from './version';
 
 export class MailMCPServer {
   private server: McpServer;
@@ -70,7 +72,7 @@ export class MailMCPServer {
     });
     this.server = new McpServer({
       name: 'mcp-mail',
-      version: '2.0.2',
+      version: SERVER_VERSION,
     });
 
     this.setupToolHandlers();
@@ -101,6 +103,7 @@ export class MailMCPServer {
 
   private setupToolHandlers(): void {
     for (const tool of MAIL_TOOLS) {
+      if (!isToolAllowed(tool.name, EMAIL_CONFIG.operationMode)) continue;
       this.server.registerTool(
         tool.name,
         {
@@ -132,6 +135,7 @@ export class MailMCPServer {
     name: MailToolName,
     args: Record<string, unknown>,
   ): Promise<CallToolResult> {
+    assertOperationAllowed(name, args, EMAIL_CONFIG.operationMode);
     switch (name) {
       case 'check_connection':
         return await this.handleCheckConnection();
@@ -684,7 +688,7 @@ export class MailMCPServer {
   }
 
   private async handleCheckConnection(): Promise<CallToolResult> {
-    const checks = await this.connections.connectAll();
+    const checks = await this.connections.connectAll(EMAIL_CONFIG.operationMode === 'full');
     return {
       content: [
         {
@@ -692,6 +696,7 @@ export class MailMCPServer {
           text: JSON.stringify(
             {
               checks,
+              operationMode: EMAIL_CONFIG.operationMode,
               ...this.connections.getStatus(),
             },
             null,

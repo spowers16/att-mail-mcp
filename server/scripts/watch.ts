@@ -1,3 +1,4 @@
+import './development-guard';
 import { fileURLToPath } from 'node:url';
 
 import { watch } from 'rollup';

@@ -82,6 +82,8 @@ let mailRuntimePromise: Promise<any> | undefined;
 function loadMailRuntime(): Promise<any> {
   if (!mailRuntimePromise) {
     const env = {
+      MAIL_OPERATION_MODE: 'full',
+      EMAIL_KEYCHAIN_SERVICE: '',
       IMAP_HOST: 'localhost',
       IMAP_PORT: '993',
       IMAP_SECURE: 'true',

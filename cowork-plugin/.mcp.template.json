@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "att_mail": {
+      "command": "{{NODE_COMMAND}}",
+      "args": ["{{SERVER_ENTRY}}"],
+      "env": {
+        "IMAP_HOST": "imap.mail.att.net",
+        "IMAP_PORT": "993",
+        "IMAP_SECURE": "true",
+        "SMTP_HOST": "smtp.mail.att.net",
+        "SMTP_PORT": "465",
+        "SMTP_SECURE": "true",
+        "EMAIL_USER": "{{EMAIL_ADDRESS}}",
+        "EMAIL_ADDRESS": "{{EMAIL_ADDRESS}}",
+        "EMAIL_KEYCHAIN_SERVICE": "{{KEYCHAIN_SERVICE}}",
+        "EMAIL_KEYCHAIN_ACCOUNT": "{{EMAIL_ADDRESS}}",
+        "IMAP_TLS_REJECT_UNAUTHORIZED": "true",
+        "SMTP_TLS_REJECT_UNAUTHORIZED": "true",
+        "MAIL_OPERATION_MODE": "full",
+        "MAIL_APPEND_SENT_COPY": "false",
+        "MAIL_ALLOWED_ROOTS": "{{ATTACHMENT_ROOT}}",
+        "MAIL_MAX_ATTACHMENT_BYTES": "15728640",
+        "MAIL_MAX_DRAFT_BYTES": "25000000"
+      }
+    }
+  }
+}

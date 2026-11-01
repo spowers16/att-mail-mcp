@@ -1,3 +1,4 @@
+import './development-guard';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
@@ -65,6 +66,8 @@ await run(
     path.join(projectRoot, 'test', 'core.test.ts'),
     path.join(projectRoot, 'test', 'drafts.test.ts'),
     path.join(projectRoot, 'test', 'server-smoke.test.ts'),
+    path.join(projectRoot, 'test', 'operation-policy.test.ts'),
+    path.join(projectRoot, 'test', 'protocol.test.ts'),
   ],
   'Test suite',
 );

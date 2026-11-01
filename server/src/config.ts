@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import path from 'path';
+import { parseOperationMode } from './operation-policy';
 
 function getRequiredEnvVar(name: string, defaultValue?: string): string {
   const value = process.env[name];
@@ -123,9 +124,11 @@ if (!imapSecure) {
   );
 }
 const smtpSecure = getRequiredBooleanEnvVar('SMTP_SECURE');
+const operationMode = parseOperationMode(process.env.MAIL_OPERATION_MODE);
 const mailPassword = getMailPassword();
 
 export const EMAIL_CONFIG = {
+  operationMode,
   // IMAP配置（接收邮件）
   IMAP: {
     host: getRequiredEnvVar('IMAP_HOST'),

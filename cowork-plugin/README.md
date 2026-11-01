@@ -1,6 +1,6 @@
 # AT&T Mail Cowork Plugin
 
-Version **1.3.0** adds an IMAP reply-draft tool and a Yahoo native reply-draft skill, while retaining new-message drafts and attachment support. This personal plugin connects desktop Cowork to the existing local AT&T/Bellsouth mail MCP server. It contains no password or Secure Mail Key; the server reads the existing macOS Keychain entry at runtime.
+Version **1.4.0** adds an IMAP reply-draft tool and a Yahoo native reply-draft skill, while retaining new-message drafts and attachment support. This personal plugin connects desktop Cowork to the existing local AT&T/Bellsouth mail MCP server. It contains no password or Secure Mail Key; the server reads the existing macOS Keychain entry at runtime.
 
 ## Compose and review
 
@@ -19,7 +19,7 @@ Both draft tools use IMAP only and do not connect to SMTP. A successful result r
 This plugin's `.mcp.json` now sets:
 
 ```text
-MAIL_ALLOWED_ROOTS=the host attachment folder configured by MAIL_ALLOWED_ROOTS
+MAIL_ALLOWED_ROOTS=<your approved host attachment folder>
 MAIL_MAX_ATTACHMENT_BYTES=15728640
 MAIL_MAX_DRAFT_BYTES=25000000
 ```
@@ -53,12 +53,12 @@ Sending, replying, thread continuation, deletion, moving, and attachment saving 
 
 1. Open Claude Desktop and select Cowork.
 2. Open **Customize**, then **Plugins**.
-3. Use the custom-plugin upload/update option and choose `att-mail-cowork-plugin-v1.3.0.zip`.
+3. Use the custom-plugin upload/update option and choose `att-mail-cowork-plugin-v1.4.0.zip`.
 4. Keep or enable the plugin named **att-mail-readonly**. The legacy identifier is retained so the new archive can replace the previous plugin. Its description now includes drafts and attachments.
 5. If the UI requires removal before re-import, remove this plugin through Claude Desktop, then import the new ZIP. Do not delete managed plugin folders manually.
 6. Start a new desktop Cowork session so the updated MCP configuration and skills load.
 7. Invoke `/test-mail` and check for both `create_draft` and `create_reply_draft`, or ask for a recipient-free attachment draft.
 
-The source is `the canonical repository’s cowork-plugin/ directory`. The ZIP contains the manifest, `.mcp.json`, README, and skills; it references the existing server under `the configured local release directory` and does not bundle another server or any credential.
+The canonical source is the repository’s `cowork-plugin/` directory. Personal `.mcp.json` settings are generated locally from `.mcp.template.json` and are excluded from Git. The ZIP contains the manifest, `.mcp.json`, README, and skills; it references the existing server under `the configured local release directory` and does not bundle another server or any credential.
 
 This setup requires a Cowork session running on this Mac with local MCP support. A web-only/cloud-only session cannot execute the Mac command or read its Keychain. This archive does not create a separate public internet endpoint.

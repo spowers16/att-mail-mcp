@@ -1,0 +1,16 @@
+{
+  "name": "att-mail-development",
+  "version": "1.4.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node tools/check.mjs",
+    "scan": "node tools/secret-scan.mjs",
+    "dev:offline": "node tools/dev-offline.mjs",
+    "release:prepare": "node tools/release.mjs prepare",
+    "release:activate": "node tools/release.mjs activate",
+    "release:rollback": "node tools/release.mjs rollback",
+    "release:status": "node tools/release.mjs status",
+    "plugin:package": "node tools/package-plugin.mjs"
+  }
+}

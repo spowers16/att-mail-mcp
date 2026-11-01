@@ -207,7 +207,7 @@ export class MailConnectionManager {
     };
   }
 
-  async connectAll(): Promise<string[]> {
+  async connectAll(includeSMTP = true): Promise<string[]> {
     const results: string[] = [];
     try {
       if (this.imapClient?.isConnected()) {
@@ -226,6 +226,11 @@ export class MailConnectionManager {
       results.push(
         `❌ IMAP: Connection failed - ${error instanceof Error ? error.message : String(error)}`,
       );
+    }
+
+    if (!includeSMTP) {
+      results.push('SMTP: Disabled by operation mode');
+      return results;
     }
 
     try {

@@ -84,6 +84,8 @@ test('stdio server initializes and exposes mailbox-scoped message tools', async 
     args: ['dist/index.js'],
     env: {
       ...process.env,
+      MAIL_OPERATION_MODE: 'full',
+      EMAIL_KEYCHAIN_SERVICE: '',
       IMAP_HOST: 'localhost',
       IMAP_PORT: '993',
       IMAP_SECURE: 'true',
@@ -92,7 +94,6 @@ test('stdio server initializes and exposes mailbox-scoped message tools', async 
       SMTP_SECURE: 'true',
       EMAIL_USER: 'smoke@example.com',
       EMAIL_PASS: 'not-used',
-      EMAIL_KEYCHAIN_SERVICE: '',
       MAIL_ALLOWED_ROOTS: '/tmp',
     },
     stderr: 'pipe',
@@ -101,7 +102,7 @@ test('stdio server initializes and exposes mailbox-scoped message tools', async 
 
   try {
     await client.connect(transport);
-    assert.equal(client.getServerVersion()?.version, '2.0.2');
+    assert.equal(client.getServerVersion()?.version, '2.0.3-att.1');
     const result = await client.listTools();
     const tools = result.tools as any[];
     assert.equal(tools.length, 14);
@@ -231,6 +232,8 @@ test('stdio EOF performs graceful connection cleanup without leaving the process
       cwd: process.cwd(),
       env: {
         ...process.env,
+        MAIL_OPERATION_MODE: 'full',
+        EMAIL_KEYCHAIN_SERVICE: '',
         IMAP_HOST: 'localhost',
         IMAP_PORT: '993',
         IMAP_SECURE: 'true',
@@ -239,7 +242,6 @@ test('stdio EOF performs graceful connection cleanup without leaving the process
         SMTP_SECURE: 'true',
         EMAIL_USER: 'smoke@example.com',
         EMAIL_PASS: 'not-used',
-        EMAIL_KEYCHAIN_SERVICE: '',
       },
       stdio: ['pipe', 'ignore', 'pipe'],
     },

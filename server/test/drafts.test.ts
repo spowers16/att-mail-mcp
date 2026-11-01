@@ -13,6 +13,8 @@ import { MAIL_TOOLS } from '../src/tool-definitions';
 const root = await mkdtemp(path.join(tmpdir(), 'mail-drafts-test-'));
 const outside = await mkdtemp(path.join(tmpdir(), 'mail-drafts-outside-'));
 Object.assign(process.env, {
+  MAIL_OPERATION_MODE: 'full',
+  EMAIL_KEYCHAIN_SERVICE: '',
   IMAP_HOST: 'localhost',
   IMAP_PORT: '993',
   IMAP_SECURE: 'true',
@@ -22,7 +24,6 @@ Object.assign(process.env, {
   EMAIL_USER: 'author@example.com',
   EMAIL_ADDRESS: 'author@example.com',
   EMAIL_PASS: 'fake-test-password',
-  EMAIL_KEYCHAIN_SERVICE: '',
   MAIL_ALLOWED_ROOTS: root,
   MAIL_MAX_ATTACHMENT_BYTES: '64',
   MAIL_MAX_DRAFT_BYTES: '100000',

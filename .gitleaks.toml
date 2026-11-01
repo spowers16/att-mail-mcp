@@ -1,0 +1,6 @@
+title = "AT&T mail source scanning"
+[extend]
+useDefault = true
+[[allowlists]]
+description = "Generated dependencies and local private artifacts are outside source control"
+paths = ['''(^|/)(node_modules|dist|\.git|\.tools|artifacts|local)/''']
