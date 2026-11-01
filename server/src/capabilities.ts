@@ -40,6 +40,8 @@ export function capabilityReport(
       name: tool.name,
       reason: !isToolAllowed(tool.name, mode) ? 'operation mode' : 'strict test scope',
     })),
+    clientFiltering:
+      'This report describes server tools. The client can further hide tools or require approval through its own allowlist/settings, which are not supplied to the MCP server.',
     testScope: EMAIL_CONFIG.testScope
       ? {
           enabled: true,

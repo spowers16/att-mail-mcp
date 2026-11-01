@@ -4,6 +4,8 @@
 
 `get_capabilities` requires no arguments and opens no mail connection. It reports the server and installed project version/commit, Node version, configured/effective mode, enabled/disabled tools, allowed attachment folders and limits, configured Drafts/Trash overrides, cached protocol support, test scope, and provider limitations. Unknown protocol support remains null until an explicit connection has been made. It never dumps the environment, password, or Keychain service/account identifiers. Authentication configuration is loaded separately at MCP startup.
 
+The reported tools are server-advertised capabilities. Codex/Cowork can further hide tools or require approval through client settings, which the server cannot inspect through MCP. Refresh the client session after updating the server, and check the client's tool allowlist if a reported tool is unavailable. A server release version also does not establish which plugin skill version a client has installed.
+
 ## Strict test scope
 
 Set `MAIL_TEST_SCOPE` to JSON in a separate test MCP process's environment. It is trusted operator configuration, not a tool argument. An example (replace every identity value with one separately authorized own-account test message):
