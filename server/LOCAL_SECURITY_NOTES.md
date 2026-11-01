@@ -37,3 +37,11 @@ The upstream quality gate (format, lint, TypeScript, build, and 64 tests) passes
 - MAIL_OPERATION_MODE supports read-only, draft-only, and full. Restricted modes hide blocked tools and enforce the policy at dispatch, including rejecting markSeen=true. Connection checks skip SMTP in restricted modes. The default full mode preserves production behavior.
 - Offline compiled-server integration uses generated certificates and loopback TLS IMAP/SMTP fixtures. It checks attachment bytes, reply headers, Bcc envelope behavior, and zero SMTP connections for restricted modes. Real credentials and mailbox data are not needed.
 - Runtime releases include locked production dependencies, a complete checksum inventory, source commit, and Node/local version metadata. Candidate preparation is separate from atomic activation; startup/verification failures leave the active release selected.
+
+## Workflow extension — v1.5
+
+- Strict operator-configured own-account test scope validates a mailbox UID/UIDVALIDITY/Message-ID seed, adds search restrictions and header preflights, and disables every SMTP tool. Batch reads preflight all UIDs before fetching bodies. The normal production profile remains unscoped.
+- Capability reporting returns whitelisted release/mode/limit/path data and cached protocol support; it never dumps credentials or authentication identifiers and opens no mail connections.
+- Conversation reconstruction uses exact reply headers, deduplicates mailbox copies, and reports missing ancestors, mailbox failures, body truncation and bounded-search limits.
+- Draft updates require a raw-MIME revision and Message-ID, preserve omitted fields/attachments/inline CIDs, and verify replacement content before a fresh check and move to Trash. Discard uses Trash, not permanent deletion. Unknown/partial outcomes do not trigger automatic retries. Signed/encrypted rewrites are refused.
+- The test boundary covers MCP operations only. Skills explicitly prohibit browser/other-connector workarounds; native Yahoo review behavior remains a separately authorized acceptance test.

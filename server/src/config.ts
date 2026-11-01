@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import path from 'path';
 import { parseOperationMode } from './operation-policy';
+import { parseTestScope } from './mail-scope';
 
 function getRequiredEnvVar(name: string, defaultValue?: string): string {
   const value = process.env[name];
@@ -125,10 +126,15 @@ if (!imapSecure) {
 }
 const smtpSecure = getRequiredBooleanEnvVar('SMTP_SECURE');
 const operationMode = parseOperationMode(process.env.MAIL_OPERATION_MODE);
+const testScope = parseTestScope(
+  process.env.MAIL_TEST_SCOPE,
+  getOptionalEnvVar('EMAIL_ADDRESS', getRequiredEnvVar('EMAIL_USER')),
+);
 const mailPassword = getMailPassword();
 
 export const EMAIL_CONFIG = {
   operationMode,
+  testScope,
   // IMAP配置（接收邮件）
   IMAP: {
     host: getRequiredEnvVar('IMAP_HOST'),
@@ -166,6 +172,7 @@ export const EMAIL_CONFIG = {
 
   DRAFTS: {
     mailbox: process.env.MAIL_DRAFTS_MAILBOX?.trim() || undefined,
+    trashMailbox: process.env.MAIL_TRASH_MAILBOX?.trim() || undefined,
     maxMessageBytes: getOptionalPositiveIntegerEnvVar(
       'MAIL_MAX_DRAFT_BYTES',
       25_000_000,

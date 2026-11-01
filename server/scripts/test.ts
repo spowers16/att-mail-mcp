@@ -68,6 +68,7 @@ await run(
     path.join(projectRoot, 'test', 'server-smoke.test.ts'),
     path.join(projectRoot, 'test', 'operation-policy.test.ts'),
     path.join(projectRoot, 'test', 'protocol.test.ts'),
+    path.join(projectRoot, 'test', 'workflows.test.ts'),
   ],
   'Test suite',
 );

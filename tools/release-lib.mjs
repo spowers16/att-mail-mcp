@@ -118,7 +118,11 @@ export async function activate(base, name) {
     const target = `releases/${name}`;
     const directory = path.join(base, target);
     const manifest = verify(directory);
-    await probe(path.join(directory, "dist/index.js"), manifest.serverVersion);
+    await probe(
+      path.join(directory, "dist/index.js"),
+      manifest.serverVersion,
+      manifest.tools,
+    );
     const old = pointer(base, "current");
     if (old === target) return manifest;
     if (old) {

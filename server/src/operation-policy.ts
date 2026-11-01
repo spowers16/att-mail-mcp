@@ -20,7 +20,10 @@ export function isToolAllowed(name: MailToolName, mode: OperationMode): boolean 
     ].includes(name)
   )
     return false;
-  return mode === 'draft-only' || !['create_draft', 'create_reply_draft'].includes(name);
+  return (
+    mode === 'draft-only' ||
+    !['create_draft', 'create_reply_draft', 'update_draft', 'discard_draft'].includes(name)
+  );
 }
 
 export function assertOperationAllowed(

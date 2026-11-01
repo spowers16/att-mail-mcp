@@ -12,8 +12,10 @@ import {
   type SearchResult,
 } from './mail-types';
 import { cleanReplySubject } from './mail-utils';
+import type { MailTestScope } from './mail-scope';
 
 interface MailSearchServiceDependencies {
+  scope?: MailTestScope;
   ensureIMAPConnection: () => Promise<void>;
   getIMAPClient: () => IMAPClient;
   findSentMailbox: () => Promise<string | null>;
@@ -266,8 +268,15 @@ export class MailSearchService {
     options: CollectOptions = {},
   ): Promise<CollectedSearch> {
     const imapClient = this.dependencies.getIMAPClient();
-    const mailboxes = args.mailboxes || (await this.defaultMailboxes());
+    const mailboxes =
+      args.mailboxes ||
+      this.dependencies.scope?.config.mailboxes ||
+      (await this.defaultMailboxes());
     const criteria = this.buildCriteria(args);
+    if (this.dependencies.scope) {
+      for (const mailbox of mailboxes) this.dependencies.scope.assertMailbox(mailbox);
+      criteria.push(...this.dependencies.scope.criteria());
+    }
     const exactRange = this.parseExactDateRange(args.since, args.before);
     const candidateBudget = options.candidateBudget ?? this.createCandidateBudget();
     const messages: ExtendedEmailMessage[] = [];
@@ -297,7 +306,11 @@ export class MailSearchService {
           false,
           candidateBudget.headerBytes,
         );
-        const filtered = fetched.filter(message => this.isWithinExactRange(message, exactRange));
+        const filtered = fetched.filter(
+          message =>
+            this.isWithinExactRange(message, exactRange) &&
+            (!this.dependencies.scope || this.dependencies.scope.accepts(message)),
+        );
 
         messages.push(...filtered);
         totalMatches += filtered.length;
@@ -556,6 +569,8 @@ export class MailSearchService {
         responseBudget,
       );
       for (const message of fetched) {
+        if (this.dependencies.scope && !this.dependencies.scope.accepts(message))
+          throw new Error('Message left the test scope before hydration');
         hydratedByRef.set(this.messageKey(message.sourceMailbox, message.uid), message);
       }
     }

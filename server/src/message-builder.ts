@@ -5,6 +5,7 @@ import { type EmailOptions } from './smtp-client';
 export function createMailOptions(options: EmailOptions, defaultFrom?: string): SendMailOptions {
   return {
     from: options.from || defaultFrom,
+    replyTo: options.replyTo,
     to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
     cc: options.cc ? (Array.isArray(options.cc) ? options.cc.join(', ') : options.cc) : undefined,
     bcc: options.bcc

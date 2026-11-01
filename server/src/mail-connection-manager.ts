@@ -152,6 +152,46 @@ export class MailConnectionManager {
     ];
   }
 
+  async getTrashMailboxCandidates(): Promise<string[]> {
+    if (EMAIL_CONFIG.DRAFTS.trashMailbox) return [EMAIL_CONFIG.DRAFTS.trashMailbox];
+    const boxes = await this.imap.getBoxes();
+    return [
+      ...new Set([
+        ...this.findMailboxesByAttribute(boxes, '\\Trash'),
+        'Trash',
+        'Deleted Messages',
+        'INBOX.Trash',
+      ]),
+    ];
+  }
+
+  async getSelectableMailboxNames(): Promise<string[]> {
+    const boxes = await this.imap.getBoxes();
+    const names: string[] = [];
+    const visited = new Set<object>();
+    function visit(nodes: Record<string, any>, parent = '', depth = 0): void {
+      if (depth > 20 || names.length > 2000)
+        throw new Error('Mailbox tree exceeds discovery limits');
+      for (const [name, box] of Object.entries(nodes)) {
+        if (!box || typeof box !== 'object' || visited.has(box)) continue;
+        visited.add(box);
+        const full = parent ? `${parent}${box.delimiter || '.'}${name}` : name;
+        if (!box.attribs?.some((attribute: string) => attribute.toLowerCase() === '\\noselect'))
+          names.push(full);
+        if (box.children) visit(box.children, full, depth + 1);
+      }
+    }
+    visit(boxes);
+    return names;
+  }
+
+  getCachedProtocolCapabilities(): Record<string, unknown> {
+    return {
+      imap: this.imapClient?.getProtocolCapabilities() || null,
+      smtpConnected: this.smtpClient?.isConnected() || false,
+    };
+  }
+
   rememberSentMailbox(mailbox: string): void {
     this.sentMailboxName = mailbox;
   }

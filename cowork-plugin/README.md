@@ -1,6 +1,6 @@
 # AT&T Mail Cowork Plugin
 
-Version **1.4.0** adds an IMAP reply-draft tool and a Yahoo native reply-draft skill, while retaining new-message drafts and attachment support. This personal plugin connects desktop Cowork to the existing local AT&T/Bellsouth mail MCP server. It contains no password or Secure Mail Key; the server reads the existing macOS Keychain entry at runtime.
+Version **1.5.0** adds capability reporting, header-based conversation retrieval, strict test scope, and revision-checked draft management. New-message drafts, attachments, and the Yahoo native reply workflow remain available. This personal plugin connects desktop Cowork to the existing local AT&T/Bellsouth mail MCP server. It contains no password or Secure Mail Key; the server reads the existing macOS Keychain entry at runtime.
 
 ## Compose and review
 
@@ -12,7 +12,7 @@ Version **1.4.0** adds an IMAP reply-draft tool and a Yahoo native reply-draft s
 
 For a draft, ask: "Save a draft for me to review in Yahoo Mail, with this attachment. Do not send it." Use `/draft-mail` for a new message and `/reply-draft` for a reply in Yahoo. `/test-mail` checks the connection and available capabilities without sending or creating anything.
 
-Both draft tools use IMAP only and do not connect to SMTP. A successful result reports `draftSaved: true`, `sent: false`, and a mailbox reference. Each call creates a new draft. The IMAP reply tool reads the original without marking it read or modifying it. Opening an email through the native Yahoo workflow can mark it read. If the parent has no Message-ID, threaded draft creation fails rather than guessing by subject. Self-only replies keep the account as their explicit recipient; a draft with no inferable recipient reports `requiresRecipientReview: true`. If the result says the save outcome is unknown, inspect Yahoo Mail's Drafts folder before retrying.
+Draft creation, update and discard use IMAP only and do not connect to SMTP. A successful result reports `draftSaved: true`, `sent: false`, and a mailbox reference. Each creation call creates a new draft; a completed update returns a replacement reference. The IMAP reply tool reads the original without marking it read or modifying it. Opening an email through the native Yahoo workflow can mark it read. If the parent has no Message-ID, threaded draft creation fails rather than guessing by subject. Self-only replies keep the account as their explicit recipient; a draft with no inferable recipient reports `requiresRecipientReview: true`. If the result says the save outcome is unknown, inspect Yahoo Mail's Drafts folder before retrying.
 
 ## Local attachments
 
@@ -28,8 +28,22 @@ Put files in that folder before asking the mail MCP to attach them. The raw atta
 
 The allowlist applies to attachment saving as well as reading. Cowork workspace paths may differ from the host paths understood by the local mail process; pass the absolute Mac path above. Do not change the allowlist or authentication settings just to work around a file error.
 
+## Conversation and draft management
+
+`get_capabilities` reports the running release/commit, effective mode, attachment boundaries, supported tools, cached protocol support and limitations without connecting to mail. `get_conversation` retrieves a chronological header-linked timeline across selectable folders, deduplicates copies, and explicitly reports missing ancestors, folder failures and resource limits.
+
+`list_drafts` finds unsent drafts; `get_draft` reads one and supplies a revision. `update_draft` rejects stale revisions, preserves omitted fields/files, verifies a replacement, and moves the original to Trash. `discard_draft` moves a reviewed draft to Trash. Neither sends mail. An interrupted replacement can leave both drafts, so inspect the result before retrying. Signed/encrypted updates use the native editor. Yahoo's imported reply-header limitation still applies.
+
+Strict test scope is an operator-configured own-account conversation boundary. It disables all SMTP and unthreaded draft creation, enforces seed identity and folder restrictions, and limits draft operations to verified related messages. It protects this MCP process; browser automation and other connectors are outside that boundary. Normal production configuration has no test scope unless explicitly configured.
+
 ## Exposed tools
 
+- `get_capabilities`
+- `get_conversation`
+- `list_drafts`
+- `get_draft`
+- `update_draft`
+- `discard_draft`
 - `check_connection`
 - `list_mailboxes`
 - `search_messages`
@@ -53,7 +67,7 @@ Sending, replying, thread continuation, deletion, moving, and attachment saving 
 
 1. Open Claude Desktop and select Cowork.
 2. Open **Customize**, then **Plugins**.
-3. Use the custom-plugin upload/update option and choose `att-mail-cowork-plugin-v1.4.0.zip`.
+3. Use the custom-plugin upload/update option and choose `att-mail-cowork-plugin-v1.5.0.zip`.
 4. Keep or enable the plugin named **att-mail-readonly**. The legacy identifier is retained so the new archive can replace the previous plugin. Its description now includes drafts and attachments.
 5. If the UI requires removal before re-import, remove this plugin through Claude Desktop, then import the new ZIP. Do not delete managed plugin folders manually.
 6. Start a new desktop Cowork session so the updated MCP configuration and skills load.

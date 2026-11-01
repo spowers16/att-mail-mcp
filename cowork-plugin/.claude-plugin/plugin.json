@@ -1,6 +1,6 @@
 {
   "name": "att-mail-readonly",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "AT&T/Bellsouth mail with attachment drafts, a Yahoo native reply-draft workflow, search, replies, and mailbox organization in desktop Cowork.",
   "author": {
     "name": "Scott Powers"

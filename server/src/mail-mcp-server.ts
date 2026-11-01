@@ -45,6 +45,15 @@ import { MailSearchService } from './search-service';
 import { MailConnectionManager } from './mail-connection-manager';
 import { assertOperationAllowed, isToolAllowed } from './operation-policy';
 import { SERVER_VERSION } from './version';
+import { MailTestScope, mailboxKey } from './mail-scope';
+import { capabilityReport } from './capabilities';
+import { ConversationService, type ConversationArgs } from './conversation-service';
+import {
+  DraftService,
+  type DraftRef,
+  type DraftMutationRef,
+  type UpdateDraftArgs,
+} from './draft-service';
 
 export class MailMCPServer {
   private server: McpServer;
@@ -52,6 +61,17 @@ export class MailMCPServer {
   private readonly fileAccessPolicy = new FileAccessPolicy(EMAIL_CONFIG.FILES);
   private readonly connections = new MailConnectionManager();
   private readonly searchService: MailSearchService;
+  private readonly scope = EMAIL_CONFIG.testScope
+    ? new MailTestScope(EMAIL_CONFIG.testScope)
+    : undefined;
+  private get operationMode() {
+    return this.scope && EMAIL_CONFIG.operationMode !== 'read-only'
+      ? ('draft-only' as const)
+      : EMAIL_CONFIG.operationMode;
+  }
+  private toolAllowed(name: MailToolName): boolean {
+    return isToolAllowed(name, this.operationMode) && !(this.scope && name === 'create_draft');
+  }
   private shutdownPromise: Promise<void> | null = null;
 
   private formatError(error: unknown, context: string): string {
@@ -62,7 +82,11 @@ export class MailMCPServer {
     // 验证配置
     this.validateConfig();
     this.searchService = new MailSearchService({
-      ensureIMAPConnection: () => this.connections.ensure(true, false),
+      ensureIMAPConnection: async () => {
+        await this.connections.ensure(true, false);
+        if (this.scope) await this.scope.assertAnchor(this.connections.imap);
+      },
+      scope: this.scope,
       getIMAPClient: () => this.connections.imap,
       findSentMailbox: () => this.connections.findSentMailbox(),
       maxBodyCharacters: EMAIL_CONFIG.FILES.maxBodyCharacters,
@@ -103,7 +127,7 @@ export class MailMCPServer {
 
   private setupToolHandlers(): void {
     for (const tool of MAIL_TOOLS) {
-      if (!isToolAllowed(tool.name, EMAIL_CONFIG.operationMode)) continue;
+      if (!this.toolAllowed(tool.name)) continue;
       this.server.registerTool(
         tool.name,
         {
@@ -120,7 +144,7 @@ export class MailMCPServer {
                 content: [
                   {
                     type: 'text',
-                    text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+                    text: `Error: ${this.redactDiagnosticMessage(error instanceof Error ? error.message : String(error))}`,
                   },
                 ],
                 isError: true,
@@ -135,8 +159,43 @@ export class MailMCPServer {
     name: MailToolName,
     args: Record<string, unknown>,
   ): Promise<CallToolResult> {
-    assertOperationAllowed(name, args, EMAIL_CONFIG.operationMode);
+    assertOperationAllowed(name, args, this.operationMode);
+    if (!this.toolAllowed(name))
+      throw new Error(`Operation ${name} is disabled by strict test scope`);
     switch (name) {
+      case 'get_capabilities':
+        return this.jsonResponse(
+          capabilityReport(
+            this.operationMode,
+            tool => this.toolAllowed(tool),
+            this.connections.getCachedProtocolCapabilities(),
+          ),
+        );
+      case 'get_conversation':
+        await this.connections.ensure(true, false);
+        return this.jsonResponse(
+          await new ConversationService({
+            imap: this.connections.imap,
+            scope: this.scope,
+            mailboxes: () => this.connections.getSelectableMailboxNames(),
+            maxCandidates: EMAIL_CONFIG.FILES.maxSearchCandidates,
+            maxHeaderBytes: EMAIL_CONFIG.FILES.maxSearchHeaderBytes,
+            maxResponseCharacters: EMAIL_CONFIG.FILES.maxResponseCharacters,
+            formatMessage: (message, budget) => this.messageForResponse(message, budget),
+          }).get(args as unknown as ConversationArgs),
+        );
+      case 'list_drafts':
+        return await this.handleListDrafts(args as unknown as SearchMessagesArgs);
+      case 'get_draft':
+        return this.jsonResponse(await (await this.drafts()).get(args as unknown as DraftRef));
+      case 'update_draft': {
+        const result = await (await this.drafts()).update(args as unknown as UpdateDraftArgs);
+        return this.jsonResponse(result, result.updated !== true);
+      }
+      case 'discard_draft': {
+        const result = await (await this.drafts()).discard(args as unknown as DraftMutationRef);
+        return this.jsonResponse(result, result.discarded !== true);
+      }
       case 'check_connection':
         return await this.handleCheckConnection();
       case 'list_mailboxes':
@@ -174,7 +233,67 @@ export class MailMCPServer {
     }
   }
 
+  private jsonResponse(value: unknown, isError = false): CallToolResult {
+    return {
+      ...(isError ? { isError: true } : {}),
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            value,
+            (key, item) =>
+              ['error', 'bodyError'].includes(key) && typeof item === 'string'
+                ? this.redactDiagnosticMessage(item)
+                : item,
+            2,
+          ),
+        },
+      ],
+    };
+  }
+
+  private async drafts(): Promise<DraftService> {
+    await this.connections.ensure(true, false);
+    return new DraftService({
+      imap: this.connections.imap,
+      scope: this.scope,
+      draftMailboxes: () => this.connections.getDraftMailboxCandidates(),
+      trashMailboxes: () => this.connections.getTrashMailboxCandidates(),
+      account: EMAIL_CONFIG.ACCOUNT.emailAddress,
+      canUpdate: this.toolAllowed('update_draft'),
+      maxMessageBytes: EMAIL_CONFIG.DRAFTS.maxMessageBytes,
+      maxBodyCharacters: EMAIL_CONFIG.FILES.maxBodyCharacters,
+      maxAttachmentBytes: EMAIL_CONFIG.FILES.maxAttachmentBytes,
+      readAttachments: paths => this.readOutgoingAttachments(paths),
+      formatMessage: message => this.messageForResponse(message, this.createResponseBudget()),
+    });
+  }
+
+  private async handleListDrafts(args: SearchMessagesArgs): Promise<CallToolResult> {
+    await this.connections.ensure(true, false);
+    const candidates = await this.connections.getDraftMailboxCandidates();
+    const selectable = await this.connections.getSelectableMailboxNames();
+    const available = candidates.filter(
+      name =>
+        selectable.some(box => mailboxKey(box) === mailboxKey(name)) &&
+        (!this.scope ||
+          this.scope.config.mailboxes.some(box => mailboxKey(box) === mailboxKey(name))),
+    );
+    const mailboxes = args.mailboxes || available;
+    if (mailboxes.some(name => !available.some(box => mailboxKey(box) === mailboxKey(name))))
+      throw new Error('list_drafts accepts only selectable allowed Drafts folders');
+    if (!mailboxes.length)
+      return this.jsonResponse({
+        messages: [],
+        totalMatches: 0,
+        hasMore: false,
+        note: 'No selectable allowed Drafts folder was found.',
+      });
+    return this.searchService.searchMessages({ ...args, mailboxes, includeBody: false });
+  }
+
   private async openMessageRef(ref: MessageRef, readOnly: boolean): Promise<MailboxInfo> {
+    if (this.scope) await this.scope.assertRef(this.connections.imap, ref);
     const mailboxInfo = await this.connections.imap.openBox(ref.mailbox, readOnly);
     if (ref.uidValidity !== undefined && mailboxInfo.uidvalidity !== ref.uidValidity) {
       throw new Error(
@@ -232,6 +351,15 @@ export class MailMCPServer {
 
   private async handleListMailboxes(): Promise<CallToolResult> {
     await this.connections.ensure(true, false);
+    if (this.scope) {
+      await this.scope.assertAnchor(this.connections.imap);
+      const names = await this.connections.getSelectableMailboxNames();
+      return this.jsonResponse(
+        names.filter(name =>
+          this.scope!.config.mailboxes.some(allowed => mailboxKey(allowed) === mailboxKey(name)),
+        ),
+      );
+    }
 
     try {
       const boxes = await this.connections.imap.getBoxes();
@@ -306,6 +434,8 @@ export class MailMCPServer {
     const markSeen = args.markSeen || false;
 
     try {
+      if (this.scope)
+        for (const uid of uids) await this.scope.assertRef(this.connections.imap, { ...ref, uid });
       await this.openMessageRef(ref, !markSeen);
       await this.connections.imap.assertUIDsExist(uids);
       const messages: EmailMessage[] = [];
@@ -688,7 +818,8 @@ export class MailMCPServer {
   }
 
   private async handleCheckConnection(): Promise<CallToolResult> {
-    const checks = await this.connections.connectAll(EMAIL_CONFIG.operationMode === 'full');
+    const checks = await this.connections.connectAll(this.operationMode === 'full');
+    if (this.scope) await this.scope.assertAnchor(this.connections.imap);
     return {
       content: [
         {
@@ -696,7 +827,7 @@ export class MailMCPServer {
           text: JSON.stringify(
             {
               checks,
-              operationMode: EMAIL_CONFIG.operationMode,
+              operationMode: this.operationMode,
               ...this.connections.getStatus(),
             },
             null,
@@ -764,6 +895,7 @@ export class MailMCPServer {
   }
 
   private async saveDraft(options: EmailOptions, replyInfo?: ReplyInfo): Promise<CallToolResult> {
+    this.scope?.assertOutgoing(options);
     options.from ||= EMAIL_CONFIG.ACCOUNT.emailAddress;
     options.messageId ||=
       '<' + randomUUID() + '@' + EMAIL_CONFIG.ACCOUNT.emailAddress.split('@').at(-1) + '>';
@@ -781,7 +913,12 @@ export class MailMCPServer {
 
     // Draft creation uses IMAP only. Never request or access an SMTP connection.
     await this.connections.ensure(true, false);
-    const candidates = await this.connections.getDraftMailboxCandidates();
+    const candidates = (await this.connections.getDraftMailboxCandidates()).filter(
+      name =>
+        !this.scope ||
+        this.scope.config.mailboxes.some(allowed => mailboxKey(allowed) === mailboxKey(name)),
+    );
+    if (!candidates.length) throw new Error('No allowed Drafts folder in test scope');
     const attempts: Array<{
       mailbox: string;
       stage: 'select' | 'append';

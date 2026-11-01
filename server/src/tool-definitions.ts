@@ -1,5 +1,6 @@
 import type { ToolAnnotations } from '@modelcontextprotocol/sdk/types.js';
 import * as z from 'zod/v4';
+import { isSafeMailboxName } from './message-ref';
 
 const readOnlyAnnotations = {
   readOnlyHint: true,
@@ -20,6 +21,7 @@ const mailboxSchema = z
   .string()
   .min(1)
   .max(MAX_MAILBOX_LENGTH)
+  .refine(isSafeMailboxName, 'Mailbox names cannot contain control characters')
   .describe('Mailbox containing the message, as returned in sourceMailbox');
 
 const uidValiditySchema = z
@@ -49,7 +51,7 @@ const signatureSchema = z
   });
 
 const uniqueMailboxesSchema = z
-  .array(z.string().min(1).max(MAX_MAILBOX_LENGTH))
+  .array(mailboxSchema)
   .min(1)
   .max(20)
   .refine(value => new Set(value).size === value.length, {
@@ -87,6 +89,123 @@ export interface MailToolDefinition {
 }
 
 export const MAIL_TOOLS = [
+  {
+    name: 'get_capabilities',
+    description:
+      'Report the loaded server/release version, operation mode, strict test scope, available tools, attachment folders/limits, cached protocol capabilities, and Yahoo limitations. Does not connect to mail or expose credentials/Keychain identifiers.',
+    annotations: { ...readOnlyAnnotations, openWorldHint: false },
+    inputSchema: z.object({}).strict(),
+  },
+  {
+    name: 'get_conversation',
+    description:
+      'Reconstruct a chronological conversation across selectable mailboxes by exact Message-ID, In-Reply-To and References, never subject matching. Deduplicates copies and reports missing ancestors, unavailable mailboxes and search/body limits explicitly. Reads without marking seen.',
+    annotations: readOnlyAnnotations,
+    inputSchema: z
+      .object({
+        mailbox: mailboxSchema,
+        uid: z.number().int().safe().min(1),
+        uidValidity: z.number().int().safe().min(1),
+        expectedMessageId: z
+          .string()
+          .regex(/^<[^<>\s]+>$/)
+          .max(998)
+          .optional(),
+        mailboxes: uniqueMailboxesSchema.optional(),
+        includeBody: z.boolean().default(true),
+        limit: z.number().int().safe().min(1).max(200).default(100),
+      })
+      .strict(),
+  },
+  {
+    name: 'list_drafts',
+    description:
+      'List unsent draft summaries from selectable account Drafts folders, optionally narrowed by subject/date. Uses header reads only; use get_draft for body, attachment metadata and a revision token. hasMore reports when the requested limit omits matches.',
+    annotations: readOnlyAnnotations,
+    inputSchema: z
+      .object({
+        mailboxes: uniqueMailboxesSchema.optional(),
+        subject: z.string().min(1).max(MAX_SEARCH_TEXT_LENGTH).optional(),
+        since: optionalDateSchema('Inclusive date/time bound'),
+        before: optionalDateSchema('Exclusive date/time bound'),
+        limit: z.number().int().safe().min(1).max(200).default(50),
+      })
+      .strict(),
+  },
+  {
+    name: 'get_draft',
+    description:
+      'Read one exact unsent draft and attachment metadata from an account Drafts folder without marking seen. Returns a raw-MIME revision token bound to mailbox/UID/UIDVALIDITY and the Message-ID needed for update/discard. Yahoo saves can replace a draft with a new UID.',
+    annotations: readOnlyAnnotations,
+    inputSchema: z
+      .object({
+        mailbox: mailboxSchema,
+        uid: z.number().int().safe().min(1),
+        uidValidity: z.number().int().safe().min(1),
+      })
+      .strict(),
+  },
+  {
+    name: 'update_draft',
+    description:
+      'Revise an owned draft without SMTP. Requires the current Message-ID and revision from get_draft. Omitted fields/attachments are preserved; an attachments array replaces the entire attachment set (empty removes all). Verifies a replacement before moving the original to Trash. On an uncertain/partial result inspect both folders; never retry blindly. Returns a NEW UID/revision. Yahoo editing may strip imported reply headers; native Yahoo Reply remains required for editable threaded replies. Signed/encrypted MIME is refused.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    inputSchema: z
+      .object({
+        mailbox: mailboxSchema,
+        uid: z.number().int().safe().min(1),
+        uidValidity: z.number().int().safe().min(1),
+        expectedMessageId: z
+          .string()
+          .regex(/^<[^<>\s]+>$/)
+          .max(998),
+        revision: z.string().regex(/^[a-f0-9]{64}$/),
+        to: z.string().max(MAX_ADDRESS_LIST_LENGTH).optional(),
+        cc: z.string().max(MAX_ADDRESS_LIST_LENGTH).optional(),
+        bcc: z.string().max(MAX_ADDRESS_LIST_LENGTH).optional(),
+        subject: z.string().max(MAX_SUBJECT_LENGTH).optional(),
+        text: bodyTextSchema.optional(),
+        html: bodyHtmlSchema.optional(),
+        signature: signatureSchema.optional(),
+        attachments: z.array(z.string().min(1).max(MAX_PATH_LENGTH)).max(20).optional(),
+      })
+      .strict()
+      .refine(
+        value =>
+          ['to', 'cc', 'bcc', 'subject', 'text', 'html', 'signature', 'attachments'].some(
+            key => value[key as keyof typeof value] !== undefined,
+          ),
+        { message: 'Provide at least one draft field to update' },
+      ),
+  },
+  {
+    name: 'discard_draft',
+    description:
+      'Move one owned, unchanged draft to a selectable Trash folder without sending or permanently deleting it. Requires the current Message-ID and revision from get_draft. Reports an uncertain move explicitly; inspect Drafts/Trash before retrying.',
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+    },
+    inputSchema: z
+      .object({
+        mailbox: mailboxSchema,
+        uid: z.number().int().safe().min(1),
+        uidValidity: z.number().int().safe().min(1),
+        expectedMessageId: z
+          .string()
+          .regex(/^<[^<>\s]+>$/)
+          .max(998),
+        revision: z.string().regex(/^[a-f0-9]{64}$/),
+      })
+      .strict(),
+  },
   {
     name: 'check_connection',
     description:

@@ -86,6 +86,20 @@ test("a checksummed runtime that cannot initialize is never activated", async (t
   assert.equal(pointer(base, "current"), "releases/good");
 });
 
+test("a release with a different advertised tool set is never activated", async (t) => {
+  const { base, release } = fixture(t);
+  release("good");
+  const candidate = release("wrong-tools");
+  const manifest = JSON.parse(
+    readFileSync(path.join(candidate, "release.json")),
+  );
+  manifest.tools = ["send_email", "create_reply_draft", "unexpected-tool"];
+  writeFileSync(path.join(candidate, "release.json"), JSON.stringify(manifest));
+  await activate(base, "good");
+  await assert.rejects(activate(base, "wrong-tools"), /tool set mismatch/);
+  assert.equal(pointer(base, "current"), "releases/good");
+});
+
 test("extra files, escaping symlinks, and malformed metadata fail verification", (t) => {
   const { base, release } = fixture(t);
   const directory = release("one");

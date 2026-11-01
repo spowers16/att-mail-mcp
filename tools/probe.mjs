@@ -3,7 +3,7 @@ import { offlineEnv } from "./common.mjs";
 
 // Protocol-only probe: it initializes/list-tools, with fake credentials and
 // localhost endpoints. It never invokes a mail operation.
-export async function probe(entry, expectedVersion) {
+export async function probe(entry, expectedVersion, expectedTools) {
   const child = spawn(process.execPath, [entry], {
     env: offlineEnv("full"),
     stdio: ["pipe", "pipe", "pipe"],
@@ -49,7 +49,10 @@ export async function probe(entry, expectedVersion) {
             if (message.id === 2) {
               const names = message.result.tools.map((tool) => tool.name);
               if (
-                names.length !== 14 ||
+                names.length < 14 ||
+                (expectedTools &&
+                  JSON.stringify([...names].sort()) !==
+                    JSON.stringify([...expectedTools].sort())) ||
                 !names.includes("create_reply_draft") ||
                 !names.includes("send_email")
               )
@@ -59,6 +62,7 @@ export async function probe(entry, expectedVersion) {
               resolve({
                 version: expectedVersion,
                 tools: names.length,
+                toolNames: names,
                 mailOperations: 0,
               });
             }

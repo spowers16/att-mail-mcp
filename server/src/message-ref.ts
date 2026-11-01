@@ -4,6 +4,15 @@ export interface MessageRef {
   uidValidity?: number;
 }
 
+export function isSafeMailboxName(value: string): boolean {
+  return (
+    value.trim().length > 0 &&
+    [...value].every(
+      character => character.charCodeAt(0) >= 0x20 && character.charCodeAt(0) !== 0x7f,
+    )
+  );
+}
+
 export interface MoveMessageRef extends MessageRef {
   targetMailbox: string;
 }
@@ -18,7 +27,7 @@ export function parseMessageRef(value: unknown, uidField: string = 'uid'): Messa
   const uid = input[uidField];
   const uidValidity = input.uidValidity;
 
-  if (!mailbox) {
+  if (!isSafeMailboxName(mailbox)) {
     throw new Error('mailbox must be a non-empty string');
   }
   if (!Number.isInteger(uid) || (uid as number) <= 0) {
@@ -43,7 +52,7 @@ export function parseMoveMessageRef(value: unknown): MoveMessageRef {
   const input = value as Record<string, unknown>;
   const targetMailbox = typeof input.targetMailbox === 'string' ? input.targetMailbox.trim() : '';
 
-  if (!targetMailbox) {
+  if (!isSafeMailboxName(targetMailbox)) {
     throw new Error('targetMailbox must be a non-empty string');
   }
 

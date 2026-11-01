@@ -60,11 +60,15 @@ if (action === "prepare") {
     const serverVersion = JSON.parse(
       readFileSync(path.join(candidate, "package.json")),
     ).version;
-    await probe(path.join(candidate, "dist/index.js"), serverVersion);
+    const discovery = await probe(
+      path.join(candidate, "dist/index.js"),
+      serverVersion,
+    );
     seal(candidate, {
       commit,
       version,
       serverVersion,
+      tools: discovery.toolNames,
       node: process.versions.node,
       createdAt: new Date().toISOString(),
     });

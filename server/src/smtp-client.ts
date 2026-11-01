@@ -14,6 +14,7 @@ export interface SMTPConfig {
 
 export interface EmailOptions {
   from?: string;
+  replyTo?: string;
   to: string | string[];
   cc?: string | string[];
   bcc?: string | string[];
@@ -27,6 +28,8 @@ export interface EmailOptions {
     filename: string;
     content: string | Buffer;
     contentType?: string;
+    cid?: string;
+    contentDisposition?: 'attachment' | 'inline';
   }>;
 }
 

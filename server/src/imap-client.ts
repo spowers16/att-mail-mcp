@@ -570,6 +570,56 @@ export class IMAPClient extends EventEmitter {
     return messages[0];
   }
 
+  async fetchRawMessage(uid: number): Promise<Buffer> {
+    if (!this.currentBox) throw new Error('Select a mailbox before fetching raw MIME');
+    return this.runOperation('FETCH raw MIME', (imap, resolve, reject, confirmCommand) => {
+      const chunks: Buffer[] = [];
+      const maximum = this.config.maxMessageBytes ?? 25 * 1024 * 1024;
+      let bytes = 0;
+      let found = false;
+      let exceeded = false;
+      const fetch = imap.fetch([uid], {
+        bodies: '',
+        struct: false,
+        envelope: false,
+        size: true,
+        markSeen: false,
+      });
+      fetch.on('message', message => {
+        found = true;
+        message.on('attributes', attrs => {
+          if (Number(attrs.size) > maximum) exceeded = true;
+        });
+        message.on('body', stream => {
+          stream.on('data', (chunk: Buffer) => {
+            bytes += chunk.length;
+            if (bytes > maximum) exceeded = true;
+            if (!exceeded) chunks.push(chunk);
+          });
+          stream.once('error', reject);
+        });
+      });
+      fetch.once('error', reject);
+      fetch.once('end', () => {
+        confirmCommand();
+        if (!found || bytes === 0) reject(new Error('Draft UID disappeared before raw MIME fetch'));
+        else if (exceeded)
+          reject(new Error(`Raw MIME exceeds the configured limit of ${maximum} bytes`));
+        else resolve(Buffer.concat(chunks));
+      });
+    });
+  }
+
+  getProtocolCapabilities(): Record<string, boolean> | null {
+    if (!this.imap || !this.connected || !this.authenticated) return null;
+    return Object.fromEntries(
+      ['UIDPLUS', 'MOVE', 'CONDSTORE', 'SPECIAL-USE'].map(name => [
+        name,
+        this.imap!.serverSupports(name),
+      ]),
+    );
+  }
+
   async fetchMessageAttachments(uid: number, maxBytes?: number): Promise<AttachmentData[]> {
     if (!this.imap) {
       throw new Error('Not connected to IMAP server');
@@ -714,7 +764,11 @@ export class IMAPClient extends EventEmitter {
     console.error(`[IMAP] Message ${uid} deleted successfully`);
   }
 
-  async moveMessage(uid: number, targetMailbox: string): Promise<MoveMessageResult> {
+  async moveMessage(
+    uid: number,
+    targetMailbox: string,
+    expectedUidValidity?: number,
+  ): Promise<MoveMessageResult> {
     if (!this.imap) {
       throw new Error('Not connected to IMAP server');
     }
@@ -722,6 +776,11 @@ export class IMAPClient extends EventEmitter {
       throw new Error('No source mailbox is currently open');
     }
     const sourceMailbox = this.currentBox;
+    if (expectedUidValidity !== undefined) {
+      const box = await this.openBox(sourceMailbox, false);
+      if (box.uidvalidity !== expectedUidValidity)
+        throw new Error('UIDVALIDITY changed before moving the draft');
+    }
     const sourceUidValidity = this.currentUidValidity;
     if (!Number.isSafeInteger(uid) || uid <= 0) {
       throw new Error('Message UID must be a positive integer');

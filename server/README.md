@@ -515,3 +515,9 @@ Released under the [MIT License](LICENSE).
 [npm](https://www.npmjs.com/package/mcp-mail-server) · [GitHub](https://github.com/yunfeizhu/mcp-mail-server) · [Issues](https://github.com/yunfeizhu/mcp-mail-server/issues) · [Changelog](CHANGELOG.md)
 
 </div>
+
+## Local v1.5 workflow extension
+
+The private development release adds `get_capabilities`, `get_conversation`, `list_drafts`, `get_draft`, `update_draft`, and `discard_draft`. Capability reporting opens no mail connection and omits authentication identifiers. Conversations traverse reply headers across selectable folders and report completeness/limits. Draft mutation requires exact mailbox/UID/UIDVALIDITY, Message-ID and raw-MIME revision; replacements are verified before moving originals to Trash, never sent or permanently deleted. Partial outcomes require inspection.
+
+Optional operator `MAIL_TEST_SCOPE` binds an isolated MCP process to a known own-account seed and explicit mailboxes, forces SMTP off, and rejects unrelated reads/drafts. It cannot be changed through MCP calls and does not constrain other connectors or browser automation. `MAIL_TRASH_MAILBOX` overrides existing Trash-folder discovery. See `../docs/MAIL-WORKFLOWS.md` in the canonical source repository for schemas, limits and concurrency/provider caveats.

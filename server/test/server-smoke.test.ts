@@ -102,13 +102,19 @@ test('stdio server initializes and exposes mailbox-scoped message tools', async 
 
   try {
     await client.connect(transport);
-    assert.equal(client.getServerVersion()?.version, '2.0.3-att.1');
+    assert.equal(client.getServerVersion()?.version, '2.0.3-att.2');
     const result = await client.listTools();
     const tools = result.tools as any[];
-    assert.equal(tools.length, 14);
+    assert.equal(tools.length, 20);
 
     const toolNames = tools.map(tool => tool.name);
     assert.deepEqual(toolNames, [
+      'get_capabilities',
+      'get_conversation',
+      'list_drafts',
+      'get_draft',
+      'update_draft',
+      'discard_draft',
       'check_connection',
       'list_mailboxes',
       'search_messages',

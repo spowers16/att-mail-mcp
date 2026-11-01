@@ -51,7 +51,7 @@ test("host rendering uses JSON values, retains file boundaries, and refuses cred
 test("plugin archive is validated against the source and cannot overwrite an existing package", (t) => {
   const directory = mkdtempSync(path.join(os.tmpdir(), "plugin-test-"));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  assert.equal(validatePlugin().version, "1.4.0");
+  assert.equal(validatePlugin().version, "1.5.0");
   const output = path.join(directory, "plugin.zip");
   assert.equal(packagePlugin(host, output).files, 6);
   assert.throws(() => packagePlugin(host, output), /overwrite/);
