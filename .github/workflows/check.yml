@@ -1,9 +1,19 @@
 name: Offline checks
-on: [push, pull_request, workflow_dispatch]
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   check:
+    # Keep these names aligned with main's required status checks.
+    name: check (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -11,13 +21,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check out source and history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - name: Use pinned Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version-file: .nvmrc
-      - run: npm --prefix server ci --ignore-scripts --no-audit --no-fund
-      - run: npm run scan
-      - run: npm run check
+      - name: Install locked dependencies
+        run: npm --prefix server ci --ignore-scripts --no-audit --no-fund
+      - name: Scan source and Git history for secrets
+        run: npm run scan
+      - name: Check formatting, lint, types, build and offline tests
+        run: npm run check
