@@ -76,3 +76,7 @@ Sending, replying, thread continuation, deletion, moving, and attachment saving 
 The canonical source is the repository’s `cowork-plugin/` directory. Personal `.mcp.json` settings are generated locally from `.mcp.template.json` and are excluded from Git. The ZIP contains the manifest, `.mcp.json`, README, and skills; it references the existing server under `the configured local release directory` and does not bundle another server or any credential.
 
 This setup requires a Cowork session running on this Mac with local MCP support. A web-only/cloud-only session cannot execute the Mac command or read its Keychain. This archive does not create a separate public internet endpoint.
+
+## Development and CI
+
+Changes to this plugin and its server go through pull requests in the [public source repository](https://github.com/spowers16/att-mail-mcp#pull-requests-and-ci). Linux and macOS CI validate the plugin manifest, skills, package rendering, server, and release tooling using fake credentials and temporary files. CI does not use this personal installation or test against Yahoo Mail. Personal `.mcp.json` files and generated plugin ZIPs stay local; importing a new ZIP remains a separate manual step after a verified release.

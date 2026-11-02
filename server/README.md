@@ -17,6 +17,9 @@ Search, read, organize, reply to, and send email through supported password- or 
 
 </div>
 
+> [!NOTE]
+> This directory contains the AT&T/Bellsouth edition maintained in [spowers16/att-mail-mcp](https://github.com/spowers16/att-mail-mcp). Start with the [repository README](../README.md) for its draft/conversation features, managed installation, and required pull-request CI. The npm badges and `npx mcp-mail-server` examples below refer to the upstream package; that package does not install this repository's local extensions.
+
 > “Find the unread messages from Alice this week, summarize them, and move the finished thread to Archive.”
 
 ## Why this server?
@@ -355,7 +358,7 @@ Outlook SMTP also uses STARTTLS on port 587, which would require `SMTP_SECURE=fa
 
 ## Development
 
-Development and runtime require Node.js 22.13 or newer. The repository pins Node.js 22.23.0 LTS in `.nvmrc` for local development.
+Use the exact Node.js version in the repository's [`.nvmrc`](../.nvmrc) for development and CI. Run the following commands from the repository root. See [Pull requests and CI](../README.md#pull-requests-and-ci) for the Linux/macOS checks required before merging.
 
 <details>
 <summary>Local Development Setup</summary>
@@ -363,50 +366,36 @@ Development and runtime require Node.js 22.13 or newer. The repository pins Node
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/yunfeizhu/mcp-mail-server.git
-   cd mcp-mail-server
+   git clone https://github.com/spowers16/att-mail-mcp.git
+   cd att-mail-mcp
    ```
 
-2. **Install dependencies**:
+2. **Select the pinned Node version and install locked dependencies**:
+
+   If using nvm, run `nvm use` first.
 
    ```bash
-   npm install
+   npm --prefix server ci --ignore-scripts
    ```
 
-3. **Build the project**:
-
-   ```bash
-   npm run build
-   ```
-
-   Run the complete local quality gate with:
+3. **Run the same offline checks as CI**:
 
    ```bash
    npm run check
+   npm run scan
    ```
 
-   Use `npm run format`, `npm run lint:fix`, `npm run format:check`, and `npm run lint` for focused formatting and linting workflows.
+   The quality gate includes the release build and offline tests. Use `npm --prefix server run build` for a focused server build, and the server's `format`, `lint:fix`, `format:check`, and `lint` scripts with the same `--prefix server` option for focused checks.
 
    Rollup resolves and transpiles `src/*.ts` directly into the single-file release bundle. Local TypeScript imports omit file extensions, while third-party package subpaths retain the extensions published by those packages. `tsc` performs type checking only and tests load source through `tsx`. Runtime libraries remain external and are installed from the package's declared `dependencies`.
 
-4. **Set environment variables**:
+4. **Start the local offline MCP**:
 
    ```bash
-   export IMAP_HOST=your-imap-server.com
-   export IMAP_PORT=993
-   export IMAP_SECURE=true
-   export SMTP_HOST=your-smtp-server.com
-   export SMTP_PORT=465
-   export SMTP_SECURE=true
-   export EMAIL_USER=your-email@domain.com
-   export EMAIL_ADDRESS=your-email@domain.com
-   export EMAIL_PASS=your-app-password
+   npm run dev:offline
    ```
 
-5. **Run the server**:
-   ```bash
-   npm start
-   ```
+   This uses fake credentials, localhost endpoints, and draft-only mode. CI never accesses a real mailbox or the Mac's Keychain. Production setup and live provider acceptance are separate procedures in [releases](../docs/RELEASING.md) and [acceptance testing](../docs/ACCEPTANCE.md).
 
 </details>
 

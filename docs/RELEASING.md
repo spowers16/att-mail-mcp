@@ -4,7 +4,7 @@ The Git repository contains `server/`, `cowork-plugin/`, and deployment tooling.
 
 ## Development
 
-Use `.nvmrc` (the same version as the deployed Node command). Run `npm --prefix server ci --ignore-scripts`, `npm run check`, and `npm run scan`. Commit changes on a feature branch and review/merge them before release. CI performs the same offline checks on Linux and macOS, with read-only GitHub permissions and no mail secrets. Do not give CI mail credentials or access to the Mac's Keychain. Dependency or Node upgrades are separate, tested changes.
+Use `.nvmrc` (the same version as the deployed Node command). Run `npm --prefix server ci --ignore-scripts`, `npm run check`, and `npm run scan`. Commit changes on a feature branch and open a PR into `main`. The required `check (ubuntu-latest)` and `check (macos-latest)` jobs must both pass on an up-to-date branch before merging; resolve review conversations and use squash or rebase merging to preserve linear history. See [the CI workflow and contribution process](../README.md#pull-requests-and-ci). CI repeats the checks after a merge to `main`; it never prepares or activates an installed release. Do not give CI mail credentials or access to the Mac's Keychain. Dependency or Node upgrades are separate, tested changes.
 
 ## Prepare and promote
 

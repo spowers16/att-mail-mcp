@@ -17,6 +17,9 @@
 
 </div>
 
+> [!NOTE]
+> 本目录是 [spowers16/att-mail-mcp](https://github.com/spowers16/att-mail-mcp) 维护的 AT&T/Bellsouth 版本。草稿、会话读取、受管理安装及 PR 必需的 CI 检查请先阅读[仓库 README](../README.md)。下方 npm 徽章和 `npx mcp-mail-server` 示例指向上游发布包，不会安装本仓库的本地扩展。
+
 > “找出 Alice 本周发来的未读邮件，帮我总结一下，然后把已经处理完的邮件移到 Archive。”
 
 ## 为什么选择它？
@@ -348,7 +351,7 @@ Outlook SMTP 的 587 端口还要求使用 STARTTLS，对应 `SMTP_SECURE=false`
 
 ## 开发
 
-开发和运行均需要 Node.js 22.13 或更高版本；仓库通过 `.nvmrc` 将本地开发版本固定为 Node.js 22.23.0 LTS。
+开发和 CI 请使用仓库 [`.nvmrc`](../.nvmrc) 中固定的 Node.js 版本，以下命令均在仓库根目录运行。合并前必需的 Linux/macOS 检查见 [Pull requests and CI](../README.md#pull-requests-and-ci)。
 
 <details>
 <summary>本地开发设置</summary>
@@ -356,50 +359,36 @@ Outlook SMTP 的 587 端口还要求使用 STARTTLS，对应 `SMTP_SECURE=false`
 1. **克隆仓库**:
 
    ```bash
-   git clone https://github.com/yunfeizhu/mcp-mail-server.git
-   cd mcp-mail-server
+   git clone https://github.com/spowers16/att-mail-mcp.git
+   cd att-mail-mcp
    ```
 
-2. **安装依赖**:
+2. **选择固定的 Node 版本并安装锁定依赖**:
+
+   如果使用 nvm，请先运行 `nvm use`。
 
    ```bash
-   npm install
+   npm --prefix server ci --ignore-scripts
    ```
 
-3. **构建项目**:
-
-   ```bash
-   npm run build
-   ```
-
-   执行完整的本地质量检查：
+3. **运行与 CI 相同的离线检查**:
 
    ```bash
    npm run check
+   npm run scan
    ```
 
-   也可以使用 `npm run format`、`npm run lint:fix`、`npm run format:check` 和 `npm run lint` 分别执行格式化与代码检查。
+   完整检查包含发布构建和离线测试。单独构建服务器可运行 `npm --prefix server run build`；执行服务器的 `format`、`lint:fix`、`format:check` 和 `lint` 脚本时，也使用 `--prefix server`。
 
    Rollup 会直接解析并转译 `src/*.ts`，生成单文件发布 bundle。本地 TypeScript 导入省略文件后缀，第三方包子路径则保留其发布时声明的后缀；`tsc` 仅执行类型检查，测试通过 `tsx` 直接加载源码。运行时库保持为 external，并通过包内声明的 `dependencies` 安装。
 
-4. **设置环境变量**:
+4. **启动本地离线 MCP**:
 
    ```bash
-   export IMAP_HOST=your-imap-server.com
-   export IMAP_PORT=993
-   export IMAP_SECURE=true
-   export SMTP_HOST=your-smtp-server.com
-   export SMTP_PORT=465
-   export SMTP_SECURE=true
-   export EMAIL_USER=your-email@domain.com
-   export EMAIL_ADDRESS=your-email@domain.com
-   export EMAIL_PASS=your-app-password
+   npm run dev:offline
    ```
 
-5. **运行服务器**:
-   ```bash
-   npm start
-   ```
+   该命令使用虚拟凭据、本机端点和仅草稿模式。CI 不会访问真实邮箱或 Mac 钥匙串。生产配置和真实服务商验收是独立流程，详见[发布说明](../docs/RELEASING.md)和[验收测试](../docs/ACCEPTANCE.md)。
 
 </details>
 
