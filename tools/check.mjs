@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { requireNode, root, npm, run } from "./common.mjs";
-requireNode();
+requireNode({ exact: false });
 run(process.execPath, [
   "server/node_modules/prettier/bin/prettier.cjs",
   "--check",
@@ -28,4 +28,5 @@ run(process.execPath, [
   "--test",
   "tools/test/release.test.mjs",
   "tools/test/package.test.mjs",
+  "tools/test/node-version.test.mjs",
 ]);

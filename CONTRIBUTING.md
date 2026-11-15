@@ -11,7 +11,7 @@ Thanks for your interest. Issues and pull requests are welcome. Because this pro
 
 ## Set up
 
-You need Git, OpenSSL, Python 3, and the exact Node.js version in [`.nvmrc`](.nvmrc). The repository tools refuse to run on any other version.
+You need Git, OpenSSL and Python 3, and Node.js. Use the exact version in [`.nvmrc`](.nvmrc) when you can: CI's required checks and release preparation use it, and `npm run release:*` refuses any other version. `npm run check` also runs on any version allowed by `engines` in `server/package.json`, with a warning.
 
 ```sh
 git clone https://github.com/spowers16/att-mail-mcp.git
@@ -57,6 +57,15 @@ Run `npm run check` and `npm run scan` before opening a pull request.
 
 The [Offline checks workflow](.github/workflows/check.yml) runs when a pull request into `main` is opened, reopened or updated, including drafts and documentation-only changes. It also runs after merges to `main` and can be started manually from the Actions tab. A new commit cancels the outdated run for the same pull request.
 
-Both `check (ubuntu-latest)` and `check (macos-latest)` must pass. Each job uses the pinned Node version and locked dependencies, scans source and history for secrets, and runs `npm run check`. CI has read-only repository permissions and no mail credentials, Keychain access, live mailbox tests or deployment steps.
+| Job                        | What it does                                                                               | Required |
+| -------------------------- | ------------------------------------------------------------------------------------------ | -------- |
+| `check (ubuntu-latest)`    | `npm run check` on the pinned Node version with locked dependencies                        | Yes      |
+| `check (macos-latest)`     | The same on macOS                                                                          | Yes      |
+| `scan`                     | `npm run scan`: Gitleaks over source and the full Git history, plus the source path policy | Yes      |
+| `workflow lint`            | actionlint and zizmor over the workflows and Dependabot settings                           | Yes      |
+| `dependency review`        | Fails a pull request that adds a dependency with a known moderate or higher vulnerability  | Yes      |
+| `compat (node 22)`, `(24)` | `npm run check` on the latest Node 22 and 24, to catch problems before a Node upgrade      | No       |
+
+CI has read-only repository permissions and no mail credentials, Keychain access, live mailbox tests or deployment steps. Dependabot opens weekly pull requests for npm packages in `server/` and for the pinned actions; it waits seven days before proposing a newly published version.
 
 Before merging, your branch must be up to date with `main` and all review conversations must be resolved. Pull requests are merged with **Squash and merge** or **Rebase and merge** to keep history linear.

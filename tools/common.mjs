@@ -8,9 +8,33 @@ export const nodeVersion = readFileSync(
   path.join(root, ".nvmrc"),
   "utf8",
 ).trim();
-export function requireNode() {
-  if (process.versions.node !== nodeVersion)
-    throw new Error(`Use Node ${nodeVersion}; got ${process.versions.node}`);
+export const minimumNodeVersion = JSON.parse(
+  readFileSync(path.join(root, "server/package.json"), "utf8"),
+).engines.node.replace(/^>=/, "");
+const parts = (version) => version.split(".").map(Number);
+function atLeast(actual, minimum) {
+  const [a, b] = [parts(actual), parts(minimum)];
+  for (let index = 0; index < 3; index += 1)
+    if (a[index] !== b[index]) return a[index] > b[index];
+  return true;
+}
+// Releases and deployment need the exact .nvmrc version. Development checks
+// accept any version allowed by server/package.json engines, with a warning.
+export function checkNodeVersion(actual, { exact = true } = {}) {
+  if (actual === nodeVersion) return {};
+  if (exact) return { error: `Use Node ${nodeVersion}; got ${actual}` };
+  if (!atLeast(actual, minimumNodeVersion))
+    return {
+      error: `Use Node ${minimumNodeVersion} or newer (${nodeVersion} for releases); got ${actual}`,
+    };
+  return {
+    warning: `Using Node ${actual}; releases require Node ${nodeVersion} from .nvmrc`,
+  };
+}
+export function requireNode(options) {
+  const { error, warning } = checkNodeVersion(process.versions.node, options);
+  if (error) throw new Error(error);
+  if (warning) console.warn(`Warning: ${warning}`);
 }
 export function cleanEnv() {
   return Object.fromEntries(
