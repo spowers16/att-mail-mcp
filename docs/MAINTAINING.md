@@ -21,12 +21,18 @@ Notes on the maintainer's own setup and the repository settings. Contributors do
 - The pre-commit hook scans the staged diff. The source policy in `tools/source-policy.mjs` refuses private or generated paths even if they're force-added.
 - To update Gitleaks, change the version and all four platform checksums in `tools/secret-scan.mjs`.
 
+## Dependencies and CI tools
+
+- Dependabot proposes npm and GitHub Actions updates weekly (`.github/dependabot.yml`). Each update is its own pull request and goes through the same checks. Runtime dependencies stay exactly pinned.
+- Dependabot doesn't update `.nvmrc`. A Node upgrade is a separate change: update `.nvmrc`, install that version as the deployed Node command, prepare a new release, and update the plugin's `NODE_COMMAND` if its path changes. The `compat` jobs show whether newer Node versions pass first.
+- actionlint is downloaded in the `workflow lint` job and checked against a pinned SHA-256. To update it, change `ACTIONLINT_VERSION` and `ACTIONLINT_SHA256` together, using the release's checksums file. The zizmor version is pinned in the same job.
+
 ## Repository settings
 
 Branch protection on `main`:
 
 - Require a pull request before merging. Approvals are optional, so a sole maintainer can merge their own pull request after checks pass.
-- Require the `check (ubuntu-latest)` and `check (macos-latest)` status checks, with the branch up to date.
+- Require the `check (ubuntu-latest)`, `check (macos-latest)`, `scan`, `workflow lint` and `dependency review` status checks, with the branch up to date. The `compat` jobs are informational and stay optional.
 - Require conversation resolution and linear history.
 - Apply the rules to administrators, and block force pushes and branch deletion.
 - Allow only **Squash and merge** and **Rebase and merge**.
@@ -37,6 +43,8 @@ Also enable:
 
 - Private vulnerability reporting, which [SECURITY.md](../SECURITY.md) relies on
 - Secret scanning with push protection, as a second layer behind Gitleaks
+- CodeQL default setup for JavaScript/TypeScript and GitHub Actions
+- Dependabot alerts and security updates
 - Automatically deleting head branches after merge
 
 ## Releases and acceptance

@@ -6,6 +6,9 @@ Project releases, matching the version in `package.json` and the plugin manifest
 
 - Rewrote the README for people new to the project, and added CONTRIBUTING.md, SECURITY.md, docs/MAINTAINING.md and this changelog.
 - Required Linux and macOS pull request checks, and updated the pinned CI actions to Node 24 runtimes.
+- Added Dependabot for npm and GitHub Actions, dependency review on pull requests, actionlint and zizmor workflow linting, and informational Node 22/24 compatibility jobs. The secret scan now runs once in its own job.
+- `npm run check` and `npm run dev:offline` now run on any Node version allowed by `engines`, with a warning; release commands still require the exact `.nvmrc` version.
+- Added a pull request template and CODEOWNERS.
 
 ## 1.5.0 (server 2.0.3-att.2) - 2026-11-01
 

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { requireNode, root, offlineEnv } from "./common.mjs";
-requireNode();
+requireNode({ exact: false });
 const child = spawn(process.execPath, ["server/dist/index.js"], {
   cwd: root,
   env: offlineEnv(),
