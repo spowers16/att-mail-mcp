@@ -351,7 +351,7 @@ Outlook SMTP 的 587 端口还要求使用 STARTTLS，对应 `SMTP_SECURE=false`
 
 ## 开发
 
-开发和 CI 请使用仓库 [`.nvmrc`](../.nvmrc) 中固定的 Node.js 版本，以下命令均在仓库根目录运行。合并前必需的 Linux/macOS 检查见 [Pull requests and CI](../README.md#pull-requests-and-ci)。
+开发和 CI 请使用仓库 [`.nvmrc`](../.nvmrc) 中固定的 Node.js 版本，以下命令均在仓库根目录运行。合并前必需的 Linux/macOS 检查见 [Pull requests and CI](../CONTRIBUTING.md#pull-requests-and-ci)。
 
 <details>
 <summary>本地开发设置</summary>

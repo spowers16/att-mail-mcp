@@ -10,6 +10,9 @@ run(process.execPath, [
   "cowork-plugin",
   ".github",
   "README.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "CHANGELOG.md",
   "AGENTS.md",
   "package.json",
 ]);

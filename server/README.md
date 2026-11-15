@@ -358,7 +358,7 @@ Outlook SMTP also uses STARTTLS on port 587, which would require `SMTP_SECURE=fa
 
 ## Development
 
-Use the exact Node.js version in the repository's [`.nvmrc`](../.nvmrc) for development and CI. Run the following commands from the repository root. See [Pull requests and CI](../README.md#pull-requests-and-ci) for the Linux/macOS checks required before merging.
+Use the exact Node.js version in the repository's [`.nvmrc`](../.nvmrc) for development and CI. Run the following commands from the repository root. See [Pull requests and CI](../CONTRIBUTING.md#pull-requests-and-ci) for the Linux/macOS checks required before merging.
 
 <details>
 <summary>Local Development Setup</summary>
